@@ -5,7 +5,7 @@
 ### Initial requirements:
   Create a webservice comprising of:
   - **endpoints** for submitting search query and retrieving stream of search results
-  - **service** for parallel and asynchronous search throu multiple search engines
+  - **service** for parallel and asynchronous search through multiple search engines
 
   Endpoints:
   
