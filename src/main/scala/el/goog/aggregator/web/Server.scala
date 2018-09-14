@@ -14,21 +14,13 @@ import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.Source
-import spray.json.DefaultJsonProtocol.jsonFormat3
-import spray.json.{PrettyPrinter, RootJsonFormat}
-
-import scala.concurrent.duration._
-import scala.concurrent.{ExecutionContextExecutor, Future}
-import scala.io.StdIn
-
 import el.goog.aggregator.dto._
-
-
-import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
-
-
-import spray.json.DefaultJsonProtocol._
+import spray.json.DefaultJsonProtocol.{jsonFormat3, _}
 import spray.json.RootJsonFormat
+
+import scala.concurrent.ExecutionContextExecutor
+import scala.concurrent.duration._
+import scala.io.StdIn
 
 object Server {
   var sequence: Int = 0
@@ -38,13 +30,16 @@ object Server {
   implicit val materializer: ActorMaterializer = ActorMaterializer()
 
 
+  /**
+    * Application entry point.
+    *
+    * @param args
+    */
   def main(args: Array[String]) {
     implicit val taskFormat: RootJsonFormat[Task] = jsonFormat3(Task)
 
-
-
     import akka.http.scaladsl.marshalling.sse.EventStreamMarshalling._
-    import el.goog.aggregator.dto.Dto._
+    import el.goog.aggregator.dto.ResponseJsonSupport._
 
     val route: Route =
       get {
@@ -55,7 +50,8 @@ object Server {
         post {
           path("task") {
             entity(as[Task]) { task =>
-                complete(submitTask(task))
+              //todo: return future
+              complete(submitTask(task))
             }
           }
         } ~
@@ -81,10 +77,8 @@ object Server {
 
   }
 
-  def submitTask(task: Task): Response = {
+  private def submitTask(task: Task) = {
     sequence = sequence + 1
-
     Response(sequence)
-
   }
 }
