@@ -12,12 +12,11 @@
   1. POST **/task** accepting following JSON: 
 ```json
     {
-      "term": "search term string", 
+      "term": "how to geek?", 
       "priority": 1, 
       "num": 10
     }
 ```
-where priority and num are integers. 
 Service should save task into persistent storage and return JSON with task identifier: 
 ```json
     {
@@ -31,7 +30,7 @@ Service should save task into persistent storage and return JSON with task ident
     {
       "id": 42, 
       "results": [
-        "http://example.com",
+        "http://stackoverflow.com",
         "http://github.com"
       ]
     }
@@ -49,3 +48,41 @@ starting from task identifier in a GET request.
   6. Each search engine should be capable of limiting number of simultaneous requests
   
   
+### Running Application
+
+- Run instance of Cassandra. For example, with Docker:
+
+```shell
+docker pull cassandra
+docker run -d -p 127.0.0.1:9042:9042 -p 127.0.0.1:9160:9160 -p 127.0.0.1:9142:9042  --name cassandra -it cassandra
+```
+
+- Create table
+````shell
+docker exec -it cassandra /bin/bash
+cqlsh
+create table goog.search ( id bigint primary key, term text, priority int, num bigint, result set<text> );
+````
+
+
+
+
+
+
+search flow
+- controller receives search request 
+- request is stored into database with id 42
+- persistent search actor created with id 42
+- controller sends command 'search' to search actor
+- search actor dispatches calls to search engines
+- search engines sends commands to search actor with search results
+- search actor stores internal state with data from search engines
+
+
+- controller receives request for search results
+- controller looks up persistent actors with matching id
+- if search actor already created continue
+- if search actor not found then create search actor and restore it's state
+- controller asks for search results
+
+- search actor yield events to controller with search results

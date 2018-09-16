@@ -1,4 +1,4 @@
-package el.goog.aggregator.dto
+package el.goog.aggregator.web.dto
 
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import spray.json.{DefaultJsonProtocol, RootJsonFormat}
@@ -25,7 +25,7 @@ case class Response(id: Int)
   * @param id      search request identifier
   * @param results list of result URLs
   */
-case class Result(id: Int, results: Seq[String])
+case class Result(id: Int, results: Set[String])
 
 
 
