@@ -84,9 +84,7 @@ object Server extends App with Log {
 //  }
 
   private def dbSource(since: Int)= {
-    //todo: not working
     Source.fromFuture(mapFutures(db.getSearchIdsGt(since))).flatMapConcat(list => Source.fromIterator(() => list.iterator))
-//    Source.fromFuture(mapFutures(db.getSearchIdsGt(since)))
   }
 
   def toResult(x: Search): Result = Result(x.id, x.result)
