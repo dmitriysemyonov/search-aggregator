@@ -14,7 +14,6 @@ import el.goog.aggregator.search.{PersistentSearchActor, SearchEngineGate, Seque
 import el.goog.aggregator.util.{Conf, Log}
 import el.goog.aggregator.web.dto._
 import org.joda.time.DateTime
-import spray.json.DefaultJsonProtocol.{jsonFormat3, _}
 import spray.json.{JsonWriter, RootJsonFormat}
 
 import scala.concurrent.duration._
@@ -32,14 +31,14 @@ object Server extends App with Log {
   val db = ProductionDb
   db.autoCreate()
 
-  implicit val system: ActorSystem = ActorSystem("search-aggregator")
-  implicit val executionContext: ExecutionContextExecutor = system.dispatcher
-  implicit val materializer: ActorMaterializer = ActorMaterializer()
-  implicit val taskFormat: RootJsonFormat[Task] = jsonFormat3(Task)
-
   import akka.http.scaladsl.marshalling.sse.EventStreamMarshalling._
   import el.goog.aggregator.web.dto.ResponseJsonSupport._
 
+  implicit val system: ActorSystem = ActorSystem("search-aggregator")
+  implicit val executionContext: ExecutionContextExecutor = system.dispatcher
+  implicit val materializer: ActorMaterializer = ActorMaterializer()
+
+  implicit val taskFormat: RootJsonFormat[Task] = jsonFormat3(Task)
   implicit val resultFormat: RootJsonFormat[Result] = jsonFormat2(Result)
 
   SearchEngineGate.loadSearchEngines()
@@ -96,7 +95,7 @@ object Server extends App with Log {
       .unfoldAsync(lastModified) { timestamp =>
 
         db.getSearchIdGtLastModifiedGt(since, lastModified)
-          .map(result => Some((DateTime.now(), result.map(toResult))))
+          .map(result => Some((DateTime.now(), result map toResult)))
       }
       .throttle(1, 5 second, 1, ThrottleMode.Shaping)
       .flatMapConcat { results =>
