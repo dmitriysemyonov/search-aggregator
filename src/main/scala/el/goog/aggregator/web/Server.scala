@@ -12,12 +12,13 @@ import akka.http.scaladsl.model.sse.ServerSentEvent
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
 import akka.stream.ActorMaterializer
-import akka.stream.scaladsl.Source
+import akka.stream.scaladsl.{Concat, Source}
 import akka.util.Timeout
 import el.goog.aggregator.persistence.{ProductionDb, Search}
 import el.goog.aggregator.search.{PersistentSearchActor, SearchEngineGate, Sequence}
 import el.goog.aggregator.util.{Conf, Log}
 import el.goog.aggregator.web.dto._
+import org.joda.time.DateTime
 import spray.json.DefaultJsonProtocol.{jsonFormat3, _}
 import spray.json.{JsonWriter, RootJsonFormat}
 
@@ -79,25 +80,36 @@ object Server extends App with Log {
   private def wrapWithServerSentEvent[T](element: T)(implicit writer: JsonWriter[T]): ServerSentEvent =
     ServerSentEvent(writer.write(element).compactPrint, "result")
 
-//  private def source(since: Int) = {
-//    Source.combine(dbSource, liveSource)
-//  }
+  private def source(since: Int) = {
+    Source.combine(dbSource(since), pollChangesSource(since))(Concat[Any])
+  }
 
   private def dbSource(since: Int)= {
     Source.fromFuture(mapFutures(db.getSearchIdsGt(since))).flatMapConcat(list => Source.fromIterator(() => list.iterator))
   }
 
-  def toResult(x: Search): Result = Result(x.id, x.result)
+  private def dbSource(since: Int, lastModified: DateTime) = {
+    Source.fromFuture(mapFutures(db.getSearchIdGtLastModifiedGt(since, lastModified))).flatMapConcat(list => Source.fromIterator(() => list.iterator))
+  }
 
-  def mapFutures(xs: Future[List[Search]]): Future[List[Result]]  = {
+  private def toResult(x: Search) = Result(x.id, x.result)
+
+  private def mapFutures(xs: Future[List[Search]]) = {
     for(list <- xs) yield list map toResult
   }
 
-  private def tick = {
-    Source.tick(2 seconds, 2 seconds, NotUsed)
-      .map(_ => LocalTime.now())
-      .map(time => ServerSentEvent(ISO_LOCAL_TIME.format(time)))
-      .keepAlive(1 second, () => ServerSentEvent.heartbeat)
+  private def pollChangesSource(since: Int) = {
+    var lastUpdate = DateTime.now()
+
+    Source.tick(5 seconds, 5 seconds, NotUsed)
+      .map(_ => DateTime.now())
+      .map(time => {
+        val source = dbSource(since, lastUpdate)
+        lastUpdate = time
+
+        source
+      }
+      )
   }
 
   private def submitTask(task: Task) = {

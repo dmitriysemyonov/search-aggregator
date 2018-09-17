@@ -30,7 +30,20 @@ abstract class SearchModel extends Table[SearchModel, Search] {
   }
 
   def getSearchIdsGt(id: Int): Future[List[Search]] = {
-    select.where(_.id gte id).consistencyLevel_=(ConsistencyLevel.ONE).allowFiltering().fetch()
+    select
+      .where(_.id gte id)
+      .consistencyLevel_=(ConsistencyLevel.ONE)
+      .allowFiltering()
+      .fetch()
+  }
+
+  def getSearchIdsGtModifiedAfter(id: Int, timestamp: DateTime): Future[List[Search]] = {
+    select
+      .where(_.id gte id)
+      .and(_.lastModified isGte timestamp)
+      .consistencyLevel_=(ConsistencyLevel.ONE)
+      .allowFiltering()
+      .fetch()
   }
 
   def store(search: Search): Future[ResultSet] = {
