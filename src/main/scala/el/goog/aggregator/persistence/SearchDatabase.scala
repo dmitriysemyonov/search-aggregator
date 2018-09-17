@@ -1,12 +1,15 @@
 package el.goog.aggregator.persistence
 
-import akka.http.javadsl.model.headers.LastModified
 import com.outworkers.phantom.builder.query.CreateQuery.Default
 import com.outworkers.phantom.dsl._
 import el.goog.aggregator.persistence.Connector._
 
 import scala.concurrent.Future
 
+/**
+  * Service wrapper for database operations.
+  * @param connector DB connector
+  */
 class SearchDatabase(override val connector: KeySpaceDef) extends Database[SearchDatabase](connector) {
 
   object searchModel extends SearchModel with connector.Connector

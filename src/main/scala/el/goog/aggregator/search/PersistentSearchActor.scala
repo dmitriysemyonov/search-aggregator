@@ -14,11 +14,6 @@ case class RequestEvent(search: Search) extends Event
 
 case class ResultEvent(result: Result) extends Event
 
-//sealed trait Command
-//case class SearchResult(id: Int, result: List[String]) extends Command
-//case class Response(id: Int) extends Command
-
-
 case class SearchState(search: Search = null, events: List[Event] = Nil) {
   def updated(event: Event): SearchState = event match {
     case evt: TraceEvent => copy(events = evt :: events)
@@ -27,7 +22,9 @@ case class SearchState(search: Search = null, events: List[Event] = Nil) {
   }
 }
 
-
+/**
+  * Actor tracking lifecycle of search request.
+  */
 class PersistentSearchActor extends PersistentActor with Log {
   override def persistenceId = "search"
 
@@ -55,7 +52,7 @@ class PersistentSearchActor extends PersistentActor with Log {
         context.system.eventStream.publish(event)
       }
 
-      val query = Query(search.term)
+      val query = Query(search.term, search.num)
       SearchEngineGate.refs.foreach(r => r ! query)
 
     case result: Result =>

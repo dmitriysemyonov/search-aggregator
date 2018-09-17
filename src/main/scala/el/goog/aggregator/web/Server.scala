@@ -1,18 +1,13 @@
 package el.goog.aggregator.web
 
-
-import java.time.LocalTime
-import java.time.format.DateTimeFormatter.ISO_LOCAL_TIME
-
-import akka.NotUsed
 import akka.actor.{ActorSystem, Props}
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.marshalling.ToResponseMarshallable._
 import akka.http.scaladsl.model.sse.ServerSentEvent
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
-import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.{Concat, Source}
+import akka.stream.{ActorMaterializer, ThrottleMode}
 import akka.util.Timeout
 import el.goog.aggregator.persistence.{ProductionDb, Search}
 import el.goog.aggregator.search.{PersistentSearchActor, SearchEngineGate, Sequence}
@@ -22,8 +17,8 @@ import org.joda.time.DateTime
 import spray.json.DefaultJsonProtocol.{jsonFormat3, _}
 import spray.json.{JsonWriter, RootJsonFormat}
 
-import scala.concurrent.{ExecutionContextExecutor, Future}
 import scala.concurrent.duration._
+import scala.concurrent.{ExecutionContextExecutor, Future}
 import scala.io.StdIn
 import scala.util.{Failure, Success}
 
@@ -62,7 +57,7 @@ object Server extends App with Log {
           parameters('id.as[Int]) {
             id =>
               complete {
-                dbSource(id).map(wrapWithServerSentEvent(_))
+                source(id).map(wrapWithServerSentEvent(_))
               }
           }
         }
@@ -81,35 +76,32 @@ object Server extends App with Log {
     ServerSentEvent(writer.write(element).compactPrint, "result")
 
   private def source(since: Int) = {
-    Source.combine(dbSource(since), pollChangesSource(since))(Concat[Any])
+    Source
+      .combine(dbSource(since), pollChangesSource(since))(Concat[Result])
   }
 
-  private def dbSource(since: Int)= {
+  private def dbSource(since: Int) = {
     Source.fromFuture(mapFutures(db.getSearchIdsGt(since))).flatMapConcat(list => Source.fromIterator(() => list.iterator))
-  }
-
-  private def dbSource(since: Int, lastModified: DateTime) = {
-    Source.fromFuture(mapFutures(db.getSearchIdGtLastModifiedGt(since, lastModified))).flatMapConcat(list => Source.fromIterator(() => list.iterator))
   }
 
   private def toResult(x: Search) = Result(x.id, x.result)
 
   private def mapFutures(xs: Future[List[Search]]) = {
-    for(list <- xs) yield list map toResult
+    for (list <- xs) yield list map toResult
   }
 
   private def pollChangesSource(since: Int) = {
-    var lastUpdate = DateTime.now()
+    val lastModified = DateTime.now()
+    Source
+      .unfoldAsync(lastModified) { timestamp =>
 
-    Source.tick(5 seconds, 5 seconds, NotUsed)
-      .map(_ => DateTime.now())
-      .map(time => {
-        val source = dbSource(since, lastUpdate)
-        lastUpdate = time
-
-        source
+        db.getSearchIdGtLastModifiedGt(since, lastModified)
+          .map(result => Some((DateTime.now(), result.map(toResult))))
       }
-      )
+      .throttle(1, 5 second, 1, ThrottleMode.Shaping)
+      .flatMapConcat { results =>
+        Source.fromIterator(() => results.iterator)
+      }
   }
 
   private def submitTask(task: Task) = {

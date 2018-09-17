@@ -5,6 +5,9 @@ import org.joda.time.DateTime
 
 import scala.concurrent.Future
 
+/**
+  * Database abstraction for model and queries.
+  */
 abstract class SearchModel extends Table[SearchModel, Search] {
   override def tableName: String = "search"
 

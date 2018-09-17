@@ -3,16 +3,16 @@ package el.goog.aggregator.search
 import akka.actor.Actor
 import el.goog.aggregator.util.Log
 
-
-case class Query(query: String)
+case class Query(query: String, num: Int)
 
 case class Result(result: List[String])
 
-
+/**
+  * Mock-up search engine.
+  */
 class DummySearchEngine extends Actor with Log {
   def name: String = "dummy"
 
-  val num = 2
   val offset = 0
 
   def find(term: String, num: Int): List[String] = {
@@ -24,7 +24,7 @@ class DummySearchEngine extends Actor with Log {
     case evt: Query =>
       log.debug(s"got query: ${evt.query}")
 
-      val result = find(evt.query, num)
+      val result = find(evt.query, evt.num)
 
       log.debug(s"result ready: $result")
       sender() ! Result(result)

@@ -1,5 +1,8 @@
 package el.goog.aggregator.search
 
+/**
+  * Sequence generator for search tasks.
+  */
 object Sequence {
   private var sequence: Int = 0
 

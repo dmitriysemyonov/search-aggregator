@@ -1,15 +1,18 @@
 package el.goog.aggregator.search
 
 import akka.actor.{ActorRef, ActorSystem, Props}
-import el.goog.aggregator.util.Log
+import el.goog.aggregator.util.{Conf, Log}
 
 import scala.collection.mutable
 
+/**
+  * Entry point for search task execution.
+  */
 object SearchEngineGate extends Log {
   var refs: mutable.Buffer[ActorRef] = mutable.Buffer.empty
 
   def loadSearchEngines()(implicit system: ActorSystem): Unit = {
-    refs = SearchConfig.providers.flatMap(actorRefForName(_))
+    refs = Conf.providers.flatMap(actorRefForName(_))
   }
 
   private def actorRefForName(className: String)(implicit system: ActorSystem) = try {
