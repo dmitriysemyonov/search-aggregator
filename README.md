@@ -74,3 +74,10 @@ CREATE TABLE goog.search (
           lastmodified timestamp,
           result set<text>);
 ````
+
+### Shortcuts and Limitations
+
+- Sequence is not persistent and will be reset upon application shutdown.
+- Search actor saves it's state to db explicitly. Should rather use appropriate journal plugin.
+- Task priority is ignored
+- Rate limit on search engines is not implemented. 

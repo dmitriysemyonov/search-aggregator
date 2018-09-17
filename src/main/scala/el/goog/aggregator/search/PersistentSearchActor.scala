@@ -22,6 +22,10 @@ case class SearchState(search: Search = null, events: List[Event] = Nil) {
   }
 }
 
+case class Query(query: String, num: Int)
+
+case class Result(result: List[String])
+
 /**
   * Actor tracking lifecycle of search request.
   */

@@ -83,7 +83,7 @@ lazy val root = (project in file(".")).
       "org.scalatest" %% "scalatest" % "3.0.5" % Test,
 
 
-      //todo: remove after cassandra view, snapshot store and message store implemented
+      //todo: use plugin more suited for production 
       "com.typesafe.akka" %% "akka-persistence" % "2.5.15",
       "org.iq80.leveldb" % "leveldb" % "0.7",
       "org.fusesource.leveldbjni" % "leveldbjni-all" % "1.8"

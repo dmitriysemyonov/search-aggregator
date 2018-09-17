@@ -3,10 +3,6 @@ package el.goog.aggregator.search
 import akka.actor.Actor
 import el.goog.aggregator.util.Log
 
-case class Query(query: String, num: Int)
-
-case class Result(result: List[String])
-
 /**
   * Mock-up search engine.
   */
